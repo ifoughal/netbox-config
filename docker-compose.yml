@@ -1,0 +1,49 @@
+version: '3.4'
+services:
+    netbox:
+        image: ${REGISTRY:+${REGISTRY}/}netboxcommunity/netbox:${VERSION-v3.5-2.6.1}
+        ports:
+        - 50080:8080
+        restart: unless-stopped
+        volumes:
+        - ./volumes/netbox/scripts:/opt/netbox/netbox/scripts
+        - ./volumes/netbox/reports:/opt/netbox/netbox/reports
+        - ./volumes/netbox/common:/opt/netbox/netbox/common
+        - ./volumes/netbox/generated-configs:/opt/netbox/netbox/generated-configs
+        networks:
+            netbox-external-con:
+    netbox-worker:
+        restart: unless-stopped
+        volumes:
+        - ./volumes/netbox/scripts:/opt/netbox/netbox/scripts
+        - ./volumes/netbox/reports:/opt/netbox/netbox/reports
+        - ./volumes/netbox/common:/opt/netbox/netbox/common
+        - ./volumes/netbox/generated-configs:/opt/netbox/netbox/generated-configs
+        networks:
+            netbox-external-con:
+    netbox-housekeeping:
+        restart: unless-stopped
+        networks:
+            netbox-external-con:
+    postgres:
+        image: ${REGISTRY:+${REGISTRY}/}postgres:15-alpine
+        restart: unless-stopped
+        volumes:
+        - ./backups:/opt/backups
+        networks:
+            netbox-external-con:
+    redis:
+        image: ${REGISTRY:+${REGISTRY}/}redis:7-alpine
+        restart: unless-stopped
+        networks:
+            netbox-external-con:
+    redis-cache:
+        image: ${REGISTRY:+${REGISTRY}/}redis:7-alpine
+        restart: unless-stopped
+        networks:
+            netbox-external-con:
+
+networks:
+    netbox-external-con:
+        external: true
+

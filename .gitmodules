@@ -1,0 +1,4 @@
+[submodule "volumes/netbox-toolkit"]
+	path = volumes/netbox-toolkit
+	url = https://github.com/ifoughal/netbox-toolkit.git
+	branch = develop
