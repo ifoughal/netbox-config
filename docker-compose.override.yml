@@ -1,0 +1,78 @@
+services:
+    netbox:
+        env_file:
+        - env/common.env
+        - env/netbox.env
+        image: ${REGISTRY:+${REGISTRY}/}netbox:${VERSION}-plugins-${BRANCH}
+        pull_policy: never
+        build:
+          context: .
+          dockerfile: Dockerfile-Plugins
+          args:
+            VERSION: ${VERSION}
+            REGISTRY: ${REGISTRY}
+        ports:
+        - 8080:8080
+        restart: unless-stopped
+        volumes:
+        - ./volumes/netbox/scripts:/opt/netbox/netbox/scripts
+        - ./volumes/netbox/reports:/opt/netbox/netbox/reports
+        - ./volumes/netbox/common:/opt/netbox/netbox/common
+        networks:
+          netbox-external-con:
+    netbox-worker:
+        image: netbox:${VERSION}-plugins-${BRANCH}
+        pull_policy: never
+        deploy:
+          replicas: 5
+        env_file:
+        - env/common.env
+        restart: unless-stopped
+        volumes:
+        - ./volumes/netbox/scripts:/opt/netbox/netbox/scripts
+        - ./volumes/netbox/reports:/opt/netbox/netbox/reports
+        - ./volumes/netbox/common:/opt/netbox/netbox/common
+        - ./volumes/netbox/generated-configs:/opt/netbox/netbox/generated-configs
+        - ./configuration/certs/gitlab-ca.crt:/usr/local/share/ca-certificates/gitlab-ca.crt:ro
+        # - ./configuration/resolv.conf:/etc/resolv.conf:ro
+        networks:
+          netbox-external-con-test:
+    netbox-housekeeping:
+        image: netbox:${VERSION}-plugins-dev
+        pull_policy: never
+        env_file:
+        - env/common.env
+        restart: unless-stopped
+        networks:
+            netbox-external-con-test:
+    postgres:
+        env_file:
+        - env/common.env
+        image: ${REGISTRY:+${REGISTRY}/}postgres:17-alpine
+        restart: unless-stopped
+        volumes:
+        - ./backups:/opt/backups
+        networks:
+            netbox-external-con-test:
+    redis:
+        env_file:
+        - env/common.env
+        image: ${REGISTRY:+${REGISTRY}/}valkey/valkey:8.1-alpine
+        restart: unless-stopped
+        networks:
+            netbox-external-con-test:
+    redis-cache:
+        env_file:
+        - env/common.env
+        image: ${REGISTRY:+${REGISTRY}/}valkey/valkey:8.1-alpine
+        restart: unless-stopped
+        networks:
+            netbox-external-con-test:
+
+networks:
+  netbox-external-con-test:
+    enable_ipv6: false
+    driver: bridge
+    # driver_opts:
+    #   com.docker.network.bridge.host_binding_ipv4: 127.0.0.1
+
