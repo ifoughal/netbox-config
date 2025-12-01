@@ -1,0 +1,20 @@
+# NbRisk==41.0.2                              # https://github.com/renatoalmeidaoliveira/nbrisk
+netbox-topology-views==4.3.0                # https://github.com/netbox-community/netbox-topology-views
+netbox-secrets==2.4.1                       # https://github.com/Onemind-Services-LLC/netbox-secrets
+netbox-contract==2.4.1                      # https://github.com/mlebreuil/netbox-contract
+# netbox-bgp==0.17.0                          # https://github.com/netbox-community/netbox-bgp
+nextbox-ui-plugin==1.0.7                    # https://github.com/iDebugAll/nextbox-ui-plugin
+netbox-qrcode==0.0.19                       # https://github.com/netbox-community/netbox-qrcode
+netbox-acls==1.9.1                          # https://github.com/netbox-community/netbox-acls
+netboxlabs-netbox-custom-objects==v0.4.1    # https://github.com/netboxlabs/netbox-custom-objects
+##################################################################################################################
+# netboxlabs-diode-netbox-plugin==1.5.1    	# https://github.com/netboxlabs/diode-netbox-plugin
+# # docker compose exec -ti netbox bash
+# # . /opt/netbox/venv/bin/activate
+# # cd /opt/netbox/netbox
+# # ./manage.py migrate netbox_diode_plugin --fake
+# # /opt/netbox/netbox/manage.py migrate
+##################################################################################################################
+# wait for pr to be merged
+# netbox-routing==0.3.1                       # https://github.com/DanSheps/netbox-routing
+git+https://github.com/ifoughal/netbox-routing.git@Feat/custom-fields#egg=netbox-routing
