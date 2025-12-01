@@ -23,20 +23,19 @@ PLUGINS = [
 ]
 
 
-# PLUGINS_CONFIG = {
-# #    'netbox_topology_views': {
-# #        'static_image_directory': 'netbox_topology_views/img',
-# #        'allow_coordinates_saving': True,
-# #        'always_save_coordinates': True
-# #    },
-#     # "netbox_diode_plugin": {
-#     #     # Diode gRPC target for communication with Diode server
-#     #     "diode_target_override": "grpc://10.66.9.46:8080/diode",
+PLUGINS_CONFIG = {
+#    'netbox_topology_views': {
+#        'static_image_directory': 'netbox_topology_views/img',
+#        'allow_coordinates_saving': True,
+#        'always_save_coordinates': True
+#    },
+   "netbox_diode_plugin": {
+      # Diode gRPC target for communication with Diode server
+      "diode_target_override": "grpc://10.10.10.100:8080",
 
-#     #     # Username associated with changes applied via plugin
-#     #     "diode_username": "diode",
-
-#     #     # netbox-to-diode client_secret created during diode bootstrap.
-#     #     "netbox_to_diode_client_secret": "p1lj5QW8glYcLTS6CmD+93tuwJ4WW2yZdpgI0F7fHg=",
+      # Username associated with changes applied via plugin
+      "diode_username": "diode-user",
+      # netbox-to-diode client_secret created during diode bootstrap.
+      "netbox_to_diode_client_secret": "abcde123456fghij7890=",
 #     # },
-# }
+}
