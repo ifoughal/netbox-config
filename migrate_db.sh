@@ -1,59 +1,72 @@
 #!/bin/bash
 
 if [[ -z ${COMPOSER} ]]; then
-    echo "[ERROR]: > you need to specify which composer you need to run! eg: COMPOSER=docker compose";
-    return 1
+    export COMPOSER="docker compose"
+    echo "[WARNING] COMPOSER variable not set. Defaulting to 'docker compose'."
 fi
 
-if [[ -z ${DB_TO_RESTORE} ]]; then
-    echo "[ERROR]: > you need to specify which DB to restore! eg: DB_TO_RESTORE=my_db.sql";
-    return 1
+# parses args and ensure that backup filename is provided
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <backup-filename>"
+    exit 1
+fi
+
+# ensure that backup file exists
+BACKUP_FILE="$1"
+if [ ! -f "$BACKUP_FILE" ]; then
+    echo "[ERROR] Backup file '$BACKUP_FILE' does not exist."
+    exit 1
+fi
+
+VOLUME=$($$COMPOSER ps -q postgres | xargs docker inspect --format '{{ json .Mounts }}' \
+    | jq -r '.[] | select(.Type=="volume") | .Name')
+
+if [ -z "$VOLUME" ]; then
+    echo "[ERROR] Could not determine the database volume name."
+    exit 1
+fi
+
+echo "[INFO] Stopping database container..."
+output=$($$COMPOSER down 2>&1)
+if [ $? -ne 0 ]; then
+    echo "[ERROR] Failed to stop containers: $output"
+    exit 1
+fi
+
+echo "[INFO] Removing database volume '$VOLUME'..."
+output=$(docker volume rm "$VOLUME" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "[ERROR] Failed to remove volume '$VOLUME': $output"
+    exit 1
+fi
+
+echo "[INFO] Creating new postgres container..."
+output=$($$COMPOSER up -d postgres 2>&1)
+if [ $? -ne 0 ]; then
+    echo "[ERROR] Failed to start postgres container: $output"
+    exit 1
+fi
+
+echo "[INFO] Waiting for PostgreSQL to become ready..."
+until $$COMPOSER exec -T postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; do
+    sleep 1
+done
+echo "[INFO] PostgreSQL is ready!"
+
+# Restore the database
+echo "[INFO] Restoring database from backup '$BACKUP_FILE'..."
+output=$(gunzip -c $BACKUP_FILE | $$COMPOSER exec -T postgres sh -c 'psql -U $POSTGRES_USER $POSTGRES_DB' 2>&1)
+if [ $? -ne 0 ]; then
+    echo "[ERROR] Failed to restore database: $output"
+    exit 1
 fi
 
 
-echo "[INFO] Started stopping containers for netbox migration"
-2>>./migrate_db.log &>>./migrate_db.log $COMPOSER stop netbox netbox-worker netbox-housekeeping
-echo "[INFO] Finished stopping containers for netbox migration"
+# Start all other containers
+output=$($$COMPOSER up -d 2>&1)
+if [ $? -ne 0 ]; then
+    echo "[ERROR] Failed to start other containers: $output"
+    exit 1
+fi
 
-echo "[INFO] Started migrating netbox db"
-gunzip -c ./backups/$DB_TO_RESTORE | $COMPOSER exec -T postgres sh -c 'psql -U $POSTGRES_USER $POSTGRES_DB'
-echo "[INFO] Finished migrating netbox db"
-
-echo "[INFO] Starting Netbox service"
-$COMPOSER start netbox netbox-worker netbox-housekeeping
-echo "[INFO] Finished Starting Netbox service"
-
-# OLD method using .sql instead of gzip
-# echo "[INFO] Started resetting netbox db"
-# $COMPOSER exec -ti postgres bash -c '''
-#     psql -d postgres -U $POSTGRES_USER -c "drop database netbox;"
-# '''
-
-# if [[ $? -ne 0 ]]; then
-#     echo "[INFO] Failed resetting netbox db"
-#     return 1
-# fi
-# echo "[INFO] Finished resetting netbox db"
-
-# echo "[INFO] Started creating new netbox DB"
-# 2>>./migrate_db.log &>>./migrate_db.log $COMPOSER exec -ti postgres bash -c '''
-#   psql -d postgres -U $POSTGRES_USER -c "create database netbox;"
-# '''
-# echo "[INFO] Finished creating new netbox DB"
-
-# echo "[INFO] Started granting postgres user all privileges on netbox DB"
-# 2>>./migrate_db.log &>>./migrate_db.log $COMPOSER exec -ti postgres bash -c '''
-#     psql -d postgres -U $POSTGRES_USER -c "grant all privileges on database netbox to netbox;"
-# '''
-# echo "[INFO] Finished granting postgres user all privileges on netbox DB"
-
-# echo "[INFO] Started restoring netbox backups on new DB"
-# 2>>./migrate_db.log &>>./migrate_db.log $COMPOSER exec -ti postgres bash -c """
-#     pg_restore -v -Fc -c -U \$POSTGRES_USER -d \$POSTGRES_DB <  /opt/backups/${DB_TO_RESTORE}
-# """
-# echo "[INFO] Finished restoring netbox backups on new DB"
-
-
-# echo "[INFO] Starting Netbox service"
-# $COMPOSER start netbox netbox-worker netbox-housekeeping
-# echo "[INFO] Finished Starting Netbox service"
+echo "[INFO] Finished restoring database from backup '$BACKUP_FILE'."
